@@ -154,8 +154,7 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Bun.js 1.0+
 - An Algorand wallet (Pera, Defly, or Exodus)
 - Algorand TestNet or MainNet access
 
@@ -167,7 +166,7 @@ git clone https://github.com/TylerGarlick/satchel.git
 cd satchel
 
 # Install dependencies
-npm install
+bun install
 
 # Copy environment variables
 cp .env.example .env.local
@@ -195,13 +194,13 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ```bash
 # Start the development server
-npm run dev
+bun run dev
 
 # Run tests
-npm test
+bun test
 
 # Build for production
-npm run build
+bun run build
 ```
 
 The application will be available at `http://localhost:3000`.
@@ -404,8 +403,8 @@ cd satchel
 git checkout -b feature/your-feature-name
 
 # Make your changes and test
-npm test
-npm run lint
+bun test
+bun run lint
 
 # Commit with clear messages
 git commit -m "feat: add new feature"
