@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Skeleton-inspired base styles */
+@layer base {
+  :root {
+    --theme-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --theme-font-family-heading: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+/* Card component */
+@layer components {
+  .card {
+    @apply bg-surface-50 dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700 shadow-sm;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-md hover:border-primary-500/50;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .btn-filled-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+
+  .variant-filled-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+
+  .variant-ghost-surface {
+    @apply bg-transparent text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700;
+  }
+
+  .variant-ghost-primary {
+    @apply bg-transparent text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20;
+  }
+
+  .h1 {
+    @apply text-4xl font-bold tracking-tight;
+  }
+
+  .h2 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+
+  .h3 {
+    @apply text-xl font-semibold;
+  }
+
+  .container {
+    @apply max-w-7xl mx-auto;
+  }
+}

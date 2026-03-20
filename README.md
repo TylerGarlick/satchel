@@ -14,7 +14,7 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Satchel Badge Flow                                 │
+│                           Satchel Badge Flow                                │
 └─────────────────────────────────────────────────────────────────────────────┘
 
    ISSUER                          SATCHEL                          HOLDER
@@ -28,15 +28,15 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
       │    (manual / webhook)         │                                │
       │                               │                                │
       │                               │<───── 3. User Earns Badge ─────│
-      │                               │     (completes criteria)       │
+      │                               │     (completes criteria)        │
       │                               │                                │
-      │                               │  4. Mint NFT (ASA)             │
+      │                               │  4. Mint NFT (ASA)              │
       │                               │───────────────────────────────>│
       │                               │                                │
       │                               │                                │
-      │                         5. Connect Wallet                      │
+      │                         5. Connect Wallet                     │
       │<────────────────────────────────────────────────────────────────│
-      │  (Satchel-enabled app reads on-chain badge ownership)          │
+      │  (Satchel-enabled app reads on-chain badge ownership)         │
       │                               │                                │
       │  6. Unlock Feature            │                                │
       │  (if badge present)           │                                │
@@ -52,7 +52,7 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 5. **On-Chain Verification** — The app queries the blockchain to check if the connected wallet holds the required badge ASA
 6. **Feature Unlock** — If the badge is present, the app grants access to the associated feature or content
 
-## Features
+## Key Features
 
 ### Wallet Management
 - **Multi-wallet support** — Connect via Pera Wallet, Defly Wallet, Exodus, or WalletConnect
@@ -81,14 +81,12 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 - **Wallet management** — Add, remove, and switch connected wallets
 - **Notification preferences** — Configure how you receive badge-related updates
 
-## Architecture
-
-### Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
 | **Frontend** | React 18, TypeScript 5, Next.js 14 |
-| **UI Framework** | SkeletonCSS |
+| **UI Framework** | Tailwind CSS with Skeleton-inspired components |
 | **Blockchain** | Algorand (algosdk) |
 | **Wallet Connect** | WalletConnect Modal, Pera Wallet |
 | **NFT Standard** | ARC3 / ARC69 |
@@ -99,23 +97,23 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                           CLIENT                                  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐               │
-│  │   Pera      │  │   Defly     │  │   Exodus    │               │
-│  │   Wallet    │  │   Wallet    │  │   Wallet    │               │
-│  └─────────────┘  └─────────────┘  └─────────────┘               │
-│           │              │              │                         │
-│           └──────────────┴──────────────┘                         │
-│                          │                                        │
-│                    WalletConnect                                  │
-│                          │                                        │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                    React / Next.js UI                        │ │
-│  │  • Wallet connect modal                                      │ │
-│  │  • Badge browser                                              │ │
-│  │  • Badge creator                                              │ │
-│  │  • Webhook manager                                            │ │
-│  │  • Settings page                                              │ │
-│  └─────────────────────────────────────────────────────────────┘ │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   Pera      │  │   Defly     │  │   Exodus    │              │
+│  │   Wallet    │  │   Wallet    │  │   Wallet    │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│           │              │              │                        │
+│           └──────────────┴──────────────┘                        │
+│                          │                                       │
+│                    WalletConnect                                 │
+│                          │                                       │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │                    React / Next.js UI                       │  │
+│  │  • Wallet connect modal                                    │  │
+│  │  • Badge browser                                            │  │
+│  │  • Badge creator                                            │  │
+│  │  • Webhook manager                                          │  │
+│  │  • Settings page                                            │  │
+│  └────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
                            │
                            ▼
@@ -123,12 +121,12 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 │                      ALGORAND BLOCKCHAIN                          │
 │                                                                   │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │  Satchel    │  │   Badge      │  │   Badge     │              │
-│  │  Badges     │  │   NFTs       │  │   NFTs      │              │
-│  │  (ASAs)     │  │   (ASAs)     │  │   (ASAs)    │              │
+│  │  Satchel    │  │   Badge     │  │   Badge     │              │
+│  │  Badges     │  │   NFTs      │  │   NFTs      │              │
+│  │  (ASAs)     │  │   (ASAs)    │  │   (ASAs)    │              │
 │  └─────────────┘  └─────────────┘  └─────────────┘              │
 │                                                                   │
-│  Metadata: collection="Satchel", trait_badge_type=<badge_name>   │
+│  Metadata: collection="Satchel", trait_badge_type=<badge_name>  │
 └──────────────────────────────────────────────────────────────────┘
                            │
                            ▼
@@ -138,7 +136,7 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 │  • Badge definition CRUD                                         │
 │  • Webhook endpoint registration                                 │
 │  • ASA minting and distribution                                  │
-│  • On-chain badge ownership queries                               │
+│  • On-chain badge ownership queries                              │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -154,7 +152,7 @@ When a user connects their Algorand wallet to a Satchel-enabled application, the
 
 ### Prerequisites
 
-- Bun.js 1.0+
+- Bun.js 1.0+ or Node.js 18+
 - An Algorand wallet (Pera, Defly, or Exodus)
 - Algorand TestNet or MainNet access
 
@@ -398,6 +396,9 @@ Contributions are welcome! Please read our contributing guidelines before submit
 # Fork and clone the repository
 git clone https://github.com/YOUR_USERNAME/satchel.git
 cd satchel
+
+# Install dependencies
+bun install
 
 # Create a feature branch
 git checkout -b feature/your-feature-name
