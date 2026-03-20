@@ -2,18 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Skeleton-inspired base styles */
+/* Skeleton UI - Winter Theme */
 @layer base {
   :root {
     --theme-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --theme-font-family-heading: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --color-primary-50: 240 249 255;
+    --color-primary-100: 224 242 254;
+    --color-primary-200: 186 230 253;
+    --color-primary-300: 125 211 252;
+    --color-primary-400: 56 189 248;
+    --color-primary-500: 14 165 233;
+    --color-primary-600: 2 132 199;
+    --color-primary-700: 3 105 161;
+    --color-primary-800: 7 89 133;
+    --color-primary-900: 12 74 110;
+  }
+  
+  html {
+    @apply bg-gray-900;
   }
 }
 
 /* Card component */
 @layer components {
   .card {
-    @apply bg-surface-50 dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700 shadow-sm;
+    @apply bg-surface-800 rounded-lg border border-surface-700 shadow-sm;
   }
 
   .card-hover {
@@ -37,11 +51,11 @@
   }
 
   .variant-ghost-surface {
-    @apply bg-transparent text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700;
+    @apply bg-transparent text-surface-400 hover:bg-surface-700;
   }
 
   .variant-ghost-primary {
-    @apply bg-transparent text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20;
+    @apply bg-transparent text-primary-400 hover:bg-primary-900/20;
   }
 
   .h1 {

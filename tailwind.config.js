@@ -1,3 +1,5 @@
+import { skeleton } from '@skeletonlabs/tw-plugin';
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -44,5 +46,11 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    skeleton({
+      themes: {
+        preset: ['wintry'],
+      },
+    }),
+  ],
 };

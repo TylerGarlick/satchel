@@ -19,6 +19,8 @@
     "test:coverage": "bun test --coverage"
   },
   "dependencies": {
+    "@skeletonlabs/skeleton": "^2.10.0",
+    "@skeletonlabs/tw-plugin": "^0.4.0",
     "@walletconnect/encoding": "^1.0.2",
     "@walletconnect/modal": "^2.6.2",
     "algosdk": "^3.0.0",
