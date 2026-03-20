@@ -203,6 +203,38 @@ bun run build
 
 The application will be available at `http://localhost:3000`.
 
+---
+
+## ⚠️ SECURITY DISCLAIMER — IMPORTANT BEFORE USE
+
+**Satchel provides AUTHORIZATION by badge ownership, NOT secure AUTHENTICATION.**
+
+This system is designed for **authorization** (deciding what a user can access based on badge holdings), not **authentication** (verifying who a user is). Please read the full [SECURITY_DISCLAIMER.md](./SECURITY_DISCLAIMER.md) before integrating Satchel into any production system.
+
+### Key Points
+
+| What Badges CAN Do | What Badges CANNOT Do |
+|--------------------|-----------------------|
+| Verify wallet holds a specific badge | Prevent unauthorized wallet access |
+| Provide on-chain issuance record | Guarantee current holder is original recipient |
+| Enable credential portability | Revoke or rollback once minted |
+| Serve as ONE factor in access decisions | Serve as sole factor for security-critical operations |
+
+### Revocation Limitation
+
+**Algorand ASAs cannot be revoked by default.** Once a badge is minted to a wallet, it remains there permanently. Clawback/freeze must be enabled at ASA creation time (disabled by default).
+
+### Do NOT Use This System For
+
+- 🚫 Security-critical access control
+- 🚫 Sole authorization factor for sensitive operations
+- 🚫 Proof of identity verification
+- 🚫 Revocable credentials
+
+For full details, see [SECURITY_DISCLAIMER.md](./SECURITY_DISCLAIMER.md).
+
+---
+
 ## Badge NFT Standard
 
 Satchel badges are Algorand ASAs (Algorand Standard Assets) that follow a consistent metadata convention to distinguish them from regular NFTs.
@@ -267,6 +299,10 @@ async function hasBadge(walletAddress: string, badgeType: string): Promise<boole
 ```
 
 ## API / Webhooks
+
+> ⚠️ **SECURITY WARNING FOR WEBHOOK INTEGRATIONS**
+>
+> Webhook-based badge issuance is **authorization by badge ownership**, NOT secure authentication. If your webhook receives a request and issues a badge, the recipient wallet may transfer, sell, or lose that badge at any time. **Do not use webhook-driven badge issuance as the sole factor for any security-critical decision.** See [SECURITY_DISCLAIMER.md](./SECURITY_DISCLAIMER.md) for full details.
 
 ### Webhook Registration
 

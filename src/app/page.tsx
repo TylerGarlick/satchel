@@ -1,6 +1,21 @@
 export default function Home() {
   return (
     <div>
+      {/* Security Warning Banner */}
+      <div className="bg-amber-900/50 border border-amber-600 rounded-lg p-4 mb-8 text-amber-100">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <h3 className="font-bold text-amber-200 mb-1">Security Notice</h3>
+            <p className="text-sm">
+              Satchel provides <strong>authorization by badge ownership</strong>, NOT secure authentication. 
+              Badges can be transferred, sold, or lost. Do not use badge holdings as the sole factor for security-critical decisions.{' '}
+              <a href="/SECURITY_DISCLAIMER" className="underline hover:text-amber-300">Read full disclaimer →</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
       <section className="py-16 text-center">
         <h1 className="text-5xl font-bold mb-4">Welcome to Satchel</h1>
         <p className="text-xl text-gray-400 mb-8">

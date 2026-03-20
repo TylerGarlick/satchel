@@ -31,8 +31,12 @@ export default function RootLayout({
         </main>
         
         <footer className="bg-gray-800 p-4 mt-8 text-center">
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-sm mb-2">
             Satchel - NFT Badge Authorization for Algorand
+          </p>
+          <p className="text-amber-600 text-xs">
+            ⚠️ Satchel provides authorization, not authentication. Badges can be transferred. {' '}
+            <a href="/SECURITY_DISCLAIMER" className="underline hover:text-amber-400">Security Info</a>
           </p>
         </footer>
       </body>
