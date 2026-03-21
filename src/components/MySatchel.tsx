@@ -330,6 +330,12 @@ function FilterBar({
   );
 }
 
+// ⚠️ SECURITY DISCLAIMER ⚠️
+// Satchel badges provide AUTHORIZATION, not AUTHENTICATION.
+// Badge ownership can change at any time (transfer, sale, wallet compromise).
+// NEVER use badge ownership as the sole factor for security-critical decisions.
+// See /SECURITY_DISCLAIMER for full details.
+
 // Main MySatchel component
 export function MySatchel() {
   const { address, isConnected } = useWallet();

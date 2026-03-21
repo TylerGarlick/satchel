@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Webhook, WebhookDeliveryReceipt, IncomingWebhookPayload } from '@/types/webhook';
+import { WebhookDeliveryReceipt, IncomingWebhookPayload } from '@/types/webhook';
 import { webhooks, receipts, evaluateConditions, validateSignature } from '../store';
+import {
+  checkOptInRequirements,
+  issueBadgeWithOptIn,
+  getAssetInfo,
+  MIN_BALANCE_FOR_OPTIN_MICROALGOS,
+  WalletSigner,
+} from '@/services/algorand';
+import algosdk from 'algosdk';
 import crypto from 'crypto';
 
 // In-memory badges reference (shared with badge routes in production)
@@ -11,6 +19,25 @@ let badges: Array<{
 }> = [
   { id: 1, name: 'Early Adopter', state: 'active' }
 ];
+
+// Get issuer configuration from environment
+const ISSUER_ADDRESS = process.env.SATCHEL_ISSUER_ADDRESS || '';
+const ISSUER_MNEMONIC = process.env.SATCHEL_ISSUER_MNEMONIC || '';
+
+/**
+ * Create a wallet signer from an Algorand mnemonic
+ * Uses the TransactionSigner interface from algosdk v3
+ */
+function createMnemonicSigner(mnemonic: string): WalletSigner {
+  return async (txns: algosdk.Transaction[], indexesToSign: number[] = []) => {
+    const account = algosdk.mnemonicToSecretKey(mnemonic);
+    const signer = algosdk.makeBasicAccountTransactionSigner(account);
+    
+    // Sign the transactions at specified indexes
+    const signedBlobs = await signer(txns, indexesToSign);
+    return signedBlobs;
+  };
+}
 
 // POST /api/webhooks/trigger - Trigger badge issuance via webhook
 export async function POST(request: NextRequest) {
@@ -145,30 +172,152 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // In production, this is where you would call algosdk to issue the NFT
-  // For demo, we simulate the issuance
+  // Issue the badge with automatic opt-in handling
   try {
-    // Simulate badge issuance
-    // In production:
-    // const { algosdk } = await import('algosdk');
-    // const client = new algosdk.Algodv2(token, server, port);
-    // const params = await client.getTransactionParams().do();
-    // const txn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
-    //   sender: issuerAddress,
-    //   total: 1,
-    //   decimals: 0,
-    //   assetName: badge.name,
-    //   unitName: `BADGE_${badge.id}`,
-    //   assetURL: badge.image,
-    //   defaultFrozen: false,
-    //   freezeAddr: undefined,
-    //   manager: issuerAddress,
-    //   reserveAddr: undefined,
-    //   clawback: undefined,
-    //   suggestedParams: params,
-    // });
-    // ... sign and submit transaction
+    // Validate issuer configuration
+    if (!ISSUER_ADDRESS) {
+      const receipt: WebhookDeliveryReceipt = {
+        id: `receipt_${Date.now()}`,
+        webhookId: webhook.id,
+        timestamp: new Date().toISOString(),
+        success: false,
+        errorMessage: 'Issuer not configured',
+        requestPayload: payload,
+      };
+      receipts.push(receipt);
 
+      return NextResponse.json(
+        { error: 'Badge issuer not configured', code: 'ISSUER_NOT_CONFIGURED' },
+        { status: 500 }
+      );
+    }
+
+    // Get asset info to verify the badge ASA exists
+    const assetInfo = await getAssetInfo(webhook.badgeId);
+    if (!assetInfo) {
+      const receipt: WebhookDeliveryReceipt = {
+        id: `receipt_${Date.now()}`,
+        webhookId: webhook.id,
+        timestamp: new Date().toISOString(),
+        success: false,
+        errorMessage: 'Badge ASA not found on chain',
+        requestPayload: payload,
+      };
+      receipts.push(receipt);
+
+      return NextResponse.json(
+        { error: 'Badge ASA not found on chain', code: 'ASSET_NOT_FOUND' },
+        { status: 404 }
+      );
+    }
+
+    // Check opt-in requirements before issuing
+    const optInCheck = await checkOptInRequirements(targetWallet, webhook.badgeId);
+    
+    console.log(`[Webhook Trigger] Badge issuance for ${targetWallet}:`, {
+      badgeId: webhook.badgeId,
+      badgeName: badge.name,
+      needsOptIn: optInCheck.needsOptIn,
+      balanceSufficient: optInCheck.hasSufficientBalance,
+      currentBalance: `${optInCheck.currentBalanceAlgo} Algo`,
+    });
+
+    // If insufficient balance for opt-in, return clear error
+    if (optInCheck.needsOptIn && !optInCheck.hasSufficientBalance) {
+      const receipt: WebhookDeliveryReceipt = {
+        id: `receipt_${Date.now()}`,
+        webhookId: webhook.id,
+        timestamp: new Date().toISOString(),
+        success: false,
+        errorMessage: 'Insufficient balance for ASA opt-in',
+        requestPayload: payload,
+      };
+      receipts.push(receipt);
+
+      const neededAlgo = MIN_BALANCE_FOR_OPTIN_MICROALGOS / 1_000_000;
+      return NextResponse.json(
+        { 
+          error: 'Insufficient balance for badge receipt',
+          code: 'INSUFFICIENT_BALANCE',
+          message: `${targetWallet} needs at least ${neededAlgo} Algo to receive this badge. Current balance: ${optInCheck.currentBalanceAlgo} Algo. Please fund the wallet and try again.`,
+          requiredBalance: neededAlgo,
+          currentBalance: optInCheck.currentBalanceAlgo,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create wallet signer based on configuration
+    let walletSigner: WalletSigner;
+    if (ISSUER_MNEMONIC) {
+      walletSigner = createMnemonicSigner(ISSUER_MNEMONIC);
+    } else {
+      // In production without mnemonic, you'd integrate with Pera/MyAlgo web wallets
+      // For now, we'll simulate success in demo mode
+      const simulatedTxId = `SIM_${crypto.randomBytes(16).toString('hex')}`;
+      console.log(`[Webhook Trigger] No issuer mnemonic configured, simulating issuance`);
+
+      const receipt: WebhookDeliveryReceipt = {
+        id: `receipt_${Date.now()}`,
+        webhookId: webhook.id,
+        timestamp: new Date().toISOString(),
+        success: true,
+        statusCode: 200,
+        responseBody: JSON.stringify({
+          message: 'Badge issuance simulated (issuer mnemonic not configured)',
+          badgeId: webhook.badgeId,
+          badgeName: badge.name,
+          targetWallet,
+          transactionId: simulatedTxId,
+          optedIn: optInCheck.needsOptIn,
+          simulation: true,
+        }),
+        requestPayload: payload,
+      };
+      receipts.push(receipt);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Badge issuance simulated (issuer mnemonic not configured)',
+        badgeId: webhook.badgeId,
+        badgeName: badge.name,
+        targetWallet,
+        receiptId: receipt.id,
+        simulation: true,
+        note: 'Configure SATCHEL_ISSUER_MNEMONIC for actual blockchain transactions',
+      });
+    }
+
+    // Issue badge with automatic opt-in handling
+    const result = await issueBadgeWithOptIn(
+      ISSUER_ADDRESS,
+      targetWallet,
+      webhook.badgeId,
+      walletSigner
+    );
+
+    if (!result.success) {
+      const receipt: WebhookDeliveryReceipt = {
+        id: `receipt_${Date.now()}`,
+        webhookId: webhook.id,
+        timestamp: new Date().toISOString(),
+        success: false,
+        errorMessage: result.error || 'Badge issuance failed',
+        requestPayload: payload,
+      };
+      receipts.push(receipt);
+
+      return NextResponse.json(
+        { 
+          error: 'Badge issuance failed',
+          code: 'ISSUANCE_FAILED',
+          message: result.error,
+        },
+        { status: 500 }
+      );
+    }
+
+    // Success
     const receipt: WebhookDeliveryReceipt = {
       id: `receipt_${Date.now()}`,
       webhookId: webhook.id,
@@ -180,11 +329,20 @@ export async function POST(request: NextRequest) {
         badgeId: webhook.badgeId,
         badgeName: badge.name,
         targetWallet,
-        transactionId: `TX_${crypto.randomBytes(16).toString('hex')}`, // Simulated
+        transactionIds: result.transactionIds,
+        optedIn: result.optedIn,
       }),
       requestPayload: payload,
     };
     receipts.push(receipt);
+
+    console.log(`[Webhook Trigger] Badge issued successfully:`, {
+      badgeId: webhook.badgeId,
+      badgeName: badge.name,
+      targetWallet,
+      transactionIds: result.transactionIds,
+      optedIn: result.optedIn,
+    });
 
     return NextResponse.json({
       success: true,
@@ -193,7 +351,10 @@ export async function POST(request: NextRequest) {
       badgeName: badge.name,
       targetWallet,
       receiptId: receipt.id,
+      transactionIds: result.transactionIds,
+      optedIn: result.optedIn,
     });
+
   } catch (error) {
     const receipt: WebhookDeliveryReceipt = {
       id: `receipt_${Date.now()}`,
@@ -204,6 +365,8 @@ export async function POST(request: NextRequest) {
       requestPayload: payload,
     };
     receipts.push(receipt);
+
+    console.error(`[Webhook Trigger] Error issuing badge:`, error);
 
     return NextResponse.json(
       { 
