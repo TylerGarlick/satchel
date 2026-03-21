@@ -1,5 +1,21 @@
 // Badge types for Satchel NFT badges
 
+export type BadgeState = 'draft' | 'active' | 'archived';
+
+export interface BadgeCriteria {
+  type: 'json_schema' | 'structured';
+  version: string;
+  schema?: Record<string, unknown>;  // JSON Schema when type is 'json_schema'
+  requirements?: BadgeRequirement[]; // Structured requirements
+}
+
+export interface BadgeRequirement {
+  id: string;
+  type: 'wallet_holds' | 'transaction_count' | 'asset_ownership' | 'custom';
+  description: string;
+  params: Record<string, unknown>;
+}
+
 export interface Badge {
   id: number;           // Algorand ASA ID
   name: string;
@@ -8,6 +24,19 @@ export interface Badge {
   issuer: string;       // Address that issued the badge
   earnedAt: string;     // ISO date string
   ipfsHash?: string;    // Optional IPFS hash for metadata
+  criteria?: BadgeCriteria;
+  state?: BadgeState;   // Optional for backward compatibility
+  deletedAt?: string;   // Soft delete timestamp
+}
+
+export interface BadgeDefinition {
+  id?: number;
+  name: string;
+  description: string;
+  image: string;
+  issuer?: string;
+  criteria?: BadgeCriteria;
+  state?: BadgeState;
 }
 
 export interface SatchelAssetParams {
