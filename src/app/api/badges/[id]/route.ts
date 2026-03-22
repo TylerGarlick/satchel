@@ -1,30 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Badge, BadgeDefinition, BadgeState } from '@/types/badge';
-
-// In-memory store reference (shared with route.ts in production)
-let badges: Badge[] = [
-  {
-    id: 1,
-    name: 'Early Adopter',
-    description: 'Awarded to the first 100 users who joined Satchel',
-    image: 'ipfs://QmX8AdLpQsMRXm5U5eYqP8xT4vZ9wQ7yX3kN2mR6tL9jA',
-    issuer: 'SATCHEL_ISSUER_ADDRESS',
-    earnedAt: new Date().toISOString(),
-    state: 'active',
-    criteria: {
-      type: 'structured',
-      version: '1.0',
-      requirements: [
-        {
-          id: 'req_1',
-          type: 'wallet_holds',
-          description: 'Must hold at least 1 SATCHEL governance token',
-          params: { assetId: 123456, minAmount: 1 }
-        }
-      ]
-    }
-  }
-];
+import { BadgeDefinition, BadgeState } from '@/types/badge';
+import { getBadgeById, updateBadge, softDeleteBadge, validateStateTransition } from '@/lib/badge-store';
 
 // GET /api/badges/[id] - Get a single badge
 export async function GET(
@@ -32,11 +8,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const badgeId = parseInt(id);
+  const badgeId = parseInt(id, 10);
   
-  const badge = badges.find(b => b.id === badgeId && !b.deletedAt);
+  if (isNaN(badgeId)) {
+    return NextResponse.json({ error: 'Invalid badge ID' }, { status: 400 });
+  }
+  
+  const badge = getBadgeById(badgeId);
   
   if (!badge) {
+    return NextResponse.json({ error: 'Badge not found' }, { status: 404 });
+  }
+
+  if (badge.deletedAt) {
     return NextResponse.json({ error: 'Badge not found' }, { status: 404 });
   }
 
@@ -49,11 +33,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const badgeId = parseInt(id);
+  const badgeId = parseInt(id, 10);
   
-  const badgeIndex = badges.findIndex(b => b.id === badgeId);
+  if (isNaN(badgeId)) {
+    return NextResponse.json({ error: 'Invalid badge ID' }, { status: 400 });
+  }
   
-  if (badgeIndex === -1 || badges[badgeIndex].deletedAt) {
+  const existingBadge = getBadgeById(badgeId);
+  
+  if (!existingBadge) {
+    return NextResponse.json({ error: 'Badge not found' }, { status: 404 });
+  }
+
+  if (existingBadge.deletedAt) {
     return NextResponse.json({ error: 'Badge not found' }, { status: 404 });
   }
 
@@ -61,17 +53,11 @@ export async function PUT(
     const updates: Partial<BadgeDefinition & { state?: BadgeState }> = await request.json();
     
     // Validate state transitions
-    const currentState = badges[badgeIndex].state || 'draft';
+    const currentState = existingBadge.state || 'draft';
     const newState = updates.state;
     
     if (newState && newState !== currentState) {
-      const validTransitions: Record<BadgeState, BadgeState[]> = {
-        'draft': ['active'],
-        'active': ['archived'],
-        'archived': []
-      };
-      
-      if (!validTransitions[currentState]?.includes(newState)) {
+      if (!validateStateTransition(currentState, newState)) {
         return NextResponse.json(
           { error: `Invalid state transition from ${currentState} to ${newState}` },
           { status: 400 }
@@ -79,14 +65,47 @@ export async function PUT(
       }
     }
 
-    // Update badge fields
-    badges[badgeIndex] = {
-      ...badges[badgeIndex],
-      ...updates,
-      id: badgeId // Ensure ID cannot be changed
-    };
+    // Validate name length if updating
+    if (updates.name !== undefined) {
+      if (updates.name.length > 100) {
+        return NextResponse.json(
+          { error: 'Badge name must be 100 characters or less' },
+          { status: 400 }
+        );
+      }
+    }
 
-    return NextResponse.json({ badge: badges[badgeIndex] });
+    // Validate description length if updating
+    if (updates.description !== undefined) {
+      if (updates.description.length > 1000) {
+        return NextResponse.json(
+          { error: 'Badge description must be 1000 characters or less' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate image if updating
+    if (updates.image !== undefined) {
+      const isValidImage = updates.image.startsWith('ipfs://') || 
+                           updates.image.startsWith('https://') ||
+                           updates.image.startsWith('http://');
+      if (!isValidImage) {
+        return NextResponse.json(
+          { error: 'Image must be a valid URL or IPFS hash' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Update badge
+    const updatedBadge = updateBadge(badgeId, updates);
+
+    if (!updatedBadge) {
+      return NextResponse.json({ error: 'Failed to update badge' }, { status: 500 });
+    }
+
+    return NextResponse.json({ badge: updatedBadge });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -98,23 +117,31 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const badgeId = parseInt(id);
+  const badgeId = parseInt(id, 10);
   
-  const badgeIndex = badges.findIndex(b => b.id === badgeId);
+  if (isNaN(badgeId)) {
+    return NextResponse.json({ error: 'Invalid badge ID' }, { status: 400 });
+  }
   
-  if (badgeIndex === -1) {
+  const badge = getBadgeById(badgeId);
+  
+  if (!badge) {
     return NextResponse.json({ error: 'Badge not found' }, { status: 404 });
   }
 
-  if (badges[badgeIndex].deletedAt) {
+  if (badge.deletedAt) {
     return NextResponse.json({ error: 'Badge already deleted' }, { status: 400 });
   }
 
   // Soft delete
-  badges[badgeIndex].deletedAt = new Date().toISOString();
+  const deletedBadge = softDeleteBadge(badgeId);
+
+  if (!deletedBadge) {
+    return NextResponse.json({ error: 'Failed to delete badge' }, { status: 500 });
+  }
 
   return NextResponse.json({ 
     message: 'Badge deleted successfully',
-    badge: badges[badgeIndex]
+    badge: deletedBadge
   });
 }
