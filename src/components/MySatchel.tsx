@@ -57,6 +57,21 @@ function parseARC69Note(noteBase64?: string): ARC69Note | null {
   }
 }
 
+// Convert Uint8Array to base64 string (browser-compatible)
+function uint8ArrayToBase64(bytes?: Uint8Array): string | undefined {
+  if (!bytes) return undefined;
+  // Handle both Node.js Buffer and browser Uint8Array
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes).toString('base64');
+  }
+  // Browser fallback using btoa with binary string
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 // Check if an asset is a Satchel badge
 function isSatchelBadge(asset: SatchelAssetParams): boolean {
   const params = asset.params;
@@ -68,10 +83,12 @@ function isSatchelBadge(asset: SatchelAssetParams): boolean {
   
   // Check ARC69 note for Satchel-specific fields
   if (params.note) {
-    const noteBase64 = Buffer.from(params.note).toString('base64');
-    const arc69 = parseARC69Note(noteBase64);
-    if (arc69 && (arc69.badge_id || arc69.issuer)) {
-      return true;
+    const noteBase64 = uint8ArrayToBase64(params.note);
+    if (noteBase64) {
+      const arc69 = parseARC69Note(noteBase64);
+      if (arc69 && (arc69.badge_id || arc69.issuer)) {
+        return true;
+      }
     }
   }
   
@@ -93,8 +110,10 @@ async function extractBadgeFromAsset(
   // Parse ARC69 note
   let arc69: ARC69Note | null = null;
   if (params.note) {
-    const noteBase64 = Buffer.from(params.note).toString('base64');
-    arc69 = parseARC69Note(noteBase64);
+    const noteBase64 = uint8ArrayToBase64(params.note);
+    if (noteBase64) {
+      arc69 = parseARC69Note(noteBase64);
+    }
   }
   
   // Determine badge data
